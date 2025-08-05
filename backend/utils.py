@@ -4,7 +4,7 @@ Handles translation, audio transcription, image text extraction, and FAQs
 """
 
 import streamlit as st
-from googletrans import Translator
+from deep_translator import GoogleTranslator
 import speech_recognition as sr
 from PIL import Image
 import pytesseract
@@ -14,32 +14,17 @@ import logging
 # Set up logging
 logger = logging.getLogger(__name__)
 
-# Create translator instance (we'll reuse this)
-translator = Translator()
-
 def translate_input(text):
     """
     Translate user input to English if needed
     Returns: (translated_text, detected_language)
     """
     try:
-        # Detect what language the user is using
-        detection = translator.detect(text)
-        detected_lang = detection.lang
-        
-        # If it's already English, no need to translate
-        if detected_lang == 'en':
-            return text, detected_lang
-        
-        # Translate to English for processing
-        translation = translator.translate(text, dest='en')
-        translated_text = translation.text
-        
-        logger.info(f"Translated from {detected_lang} to English")
-        return translated_text, detected_lang
-        
+        # Translate from any language to English
+        translated_text = GoogleTranslator(source='auto', target='en').translate(text)
+        logger.info("Translation to English successful")
+        return translated_text, 'auto'
     except Exception as e:
-        # If translation fails, just use original text
         logger.warning(f"Translation failed: {e}")
         return text, 'en'
 
@@ -47,17 +32,12 @@ def translate_output(text, target_language):
     """
     Translate AI response back to user's language if needed
     """
+    if target_language == 'en':
+        return text
     try:
-        # If target language is English, no translation needed
-        if target_language == 'en':
-            return text
-        
-        # Translate response back to user's language
-        translation = translator.translate(text, dest=target_language)
-        return translation.text
-        
+        translated = GoogleTranslator(source='en', target=target_language).translate(text)
+        return translated
     except Exception as e:
-        # If translation fails, return English version
         logger.warning(f"Output translation failed: {e}")
         return text
 
@@ -66,18 +46,11 @@ def transcribe_audio(audio_file):
     Convert audio file to text using speech recognition
     """
     try:
-        # Create speech recognizer
         recognizer = sr.Recognizer()
-        
-        # Convert uploaded file to audio data
         audio_data = audio_file.read()
         audio_file_like = io.BytesIO(audio_data)
-        
-        # Use speech recognition to convert to text
         with sr.AudioFile(audio_file_like) as source:
             audio = recognizer.record(source)
-            
-        # Try to recognize speech (this uses Google's free service)
         try:
             text = recognizer.recognize_google(audio)
             logger.info("Audio transcription successful")
@@ -88,7 +61,6 @@ def transcribe_audio(audio_file):
         except sr.RequestError as e:
             logger.error(f"Speech recognition service error: {e}")
             return None
-            
     except Exception as e:
         logger.error(f"Audio transcription failed: {e}")
         return None
@@ -98,23 +70,15 @@ def extract_text_from_image(image_file):
     Extract text from image using OCR (Optical Character Recognition)
     """
     try:
-        # Open the image
         image = Image.open(image_file)
-        
-        # Use Tesseract OCR to extract text
-        # Note: This requires tesseract to be installed on the system
         extracted_text = pytesseract.image_to_string(image)
-        
-        # Clean up the extracted text
         cleaned_text = extracted_text.strip()
-        
         if cleaned_text:
             logger.info("Text extraction from image successful")
             return cleaned_text
         else:
             logger.warning("No text found in image")
             return None
-            
     except Exception as e:
         logger.error(f"Image text extraction failed: {e}")
         return None
@@ -122,7 +86,6 @@ def extract_text_from_image(image_file):
 def get_faqs():
     """
     Return a list of frequently asked questions for the sidebar
-    These help users understand what K-Gabay can do
     """
     faqs = [
         {
@@ -150,7 +113,6 @@ def get_faqs():
             "answer": "I can handle long documents! I break them into smaller sections and search through all of them to find relevant information for your questions."
         }
     ]
-    
     return faqs
 
 def validate_file_upload(uploaded_file, file_type="pdf"):
@@ -161,49 +123,33 @@ def validate_file_upload(uploaded_file, file_type="pdf"):
     try:
         if uploaded_file is None:
             return False, "No file uploaded"
-        
-        # Check file size (limit to 10MB for now)
         file_size = len(uploaded_file.getvalue())
-        if file_size > 10 * 1024 * 1024:  # 10MB in bytes
+        if file_size > 10 * 1024 * 1024:
             return False, "File is too large (max 10MB)"
-        
-        if file_size < 100:  # Very small files are probably empty
+        if file_size < 100:
             return False, "File appears to be empty"
-        
-        # Check file type specific validations
         if file_type == "pdf":
             file_content = uploaded_file.getvalue()
             if not file_content.startswith(b'%PDF'):
                 return False, "File doesn't appear to be a valid PDF"
-        
         return True, "File is valid"
-        
     except Exception as e:
         return False, f"Error validating file: {str(e)}"
 
 def format_sources_for_display(sources, max_sources=3):
     """
     Format source content for nice display in the UI
-    Limits the number of sources and cleans up the text
     """
     if not sources:
         return []
-    
     formatted_sources = []
-    for i, source in enumerate(sources[:max_sources]):  # Limit number of sources
-        # Clean up the source text
+    for i, source in enumerate(sources[:max_sources]):
         cleaned_source = source.strip()
-        
-        # Limit length of each source for readability
         if len(cleaned_source) > 500:
             cleaned_source = cleaned_source[:500] + "..."
-        
-        # Remove excessive line breaks
         cleaned_source = ' '.join(cleaned_source.split())
-        
-        if cleaned_source and len(cleaned_source) > 50:  # Only include substantial sources
+        if cleaned_source and len(cleaned_source) > 50:
             formatted_sources.append(cleaned_source)
-    
     return formatted_sources
 
 def create_simple_error_message(error_type, context=""):
@@ -220,15 +166,9 @@ def create_simple_error_message(error_type, context=""):
         "image": "I couldn't extract text from the image. Please make sure the image contains clear, readable text.",
         "general": "Something went wrong, but don't worry! Please try again or rephrase your question."
     }
-    
     base_message = error_messages.get(error_type, error_messages["general"])
-    
-    if context:
-        return f"{base_message} Additional info: {context}"
-    else:
-        return base_message
+    return f"{base_message} Additional info: {context}" if context else base_message
 
-# List of functions that can be imported from this module
 __all__ = [
     'translate_input',
     'translate_output', 
