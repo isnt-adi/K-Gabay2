@@ -41,18 +41,23 @@
 - Tesseract OCR (for image processing)
 
 ### Setup
-```
+
 # Clone repository
+```
 git clone https://github.com/your-repo/K-Gabay.git
 cd K-Gabay
+```
 
 # Create virtual environment
+```
 python -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
+```
 
 # Install dependencies
+```
 pip install -r requirements.txt
-
+```
 🏃 Running the Application
 ```
 streamlit run app.py
