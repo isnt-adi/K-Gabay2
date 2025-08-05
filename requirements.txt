@@ -19,8 +19,7 @@ Pillow>=10.2.0
 SpeechRecognition==3.10.0
 
 # Translation
-googletrans==4.0.0rc1
-httpcore<1.0  # Fix for googletrans compatibility
+deep_translator
 
 # Web content processing
 beautifulsoup4>=4.12.2
