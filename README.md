@@ -2,7 +2,7 @@
 
 **K-Gabay** is a multilingual AI assistant designed to help students with academic research and document analysis. Powered by Retrieval-Augmented Generation (RAG) technology, it provides intelligent answers from uploaded documents while supporting general academic queries.
 
-🔗 Live Demo (Coming soon)
+🔗 Live Demo https://huggingface.co/spaces/isnt-adi/K-Gabay
 
 ## 🌟 Key Features
 
